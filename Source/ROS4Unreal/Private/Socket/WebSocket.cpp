@@ -22,8 +22,13 @@ bool UWebSocket::initialize()
 		});
 
 	socket_->OnMessageSent().AddLambda([this](const FString& msg)->void {
-		UE_LOG(LogTemp, Error, TEXT("Socket messge sent: %s"), *msg);
+		return;
 		});
+	
+	socket_->OnMessage().AddLambda([this](const FString& msg)-> void {
+		return; // To init Event on OnMessage;
+		});
+	
 
 	socket_->OnConnected().AddLambda([this]()->void {
 		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Blue, "Connect ok");

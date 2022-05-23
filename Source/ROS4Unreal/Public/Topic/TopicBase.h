@@ -15,7 +15,7 @@ typedef struct advertiseMessage_t {
 } advertiseMessage_t;
 
 
-void to_json(nlohmann::json& j, const advertiseMessage_t& M) {
+inline void to_json(nlohmann::json& j, const advertiseMessage_t& M) {
 	j = nlohmann::json{ {"op",M.op},{"topic",M.topic},{"type",M.type} };
 	if (M.id.IsSet()) {
 		j["id"] = M.id.GetValue();
@@ -23,7 +23,7 @@ void to_json(nlohmann::json& j, const advertiseMessage_t& M) {
 
 };
 
-void from_json(const nlohmann::json& j, advertiseMessage_t& M) {
+inline void from_json(const nlohmann::json& j, advertiseMessage_t& M) {
 
 	j.at("op").get_to(M.op);
 	if (j.count("id") != 0)
@@ -41,7 +41,7 @@ typedef struct unadvertiseMessage_t {
 	std::string topic;
 } unadvertiseMessage_t;
 
-void to_json(nlohmann::json& j, const unadvertiseMessage_t& M) {
+inline void to_json(nlohmann::json& j, const unadvertiseMessage_t& M) {
 	j = nlohmann::json{ {"op",M.op},{"topic",M.topic} };
 	if (M.id.IsSet()) {
 		j["id"] = M.id.GetValue();
@@ -49,7 +49,7 @@ void to_json(nlohmann::json& j, const unadvertiseMessage_t& M) {
 
 };
 
-void from_json(const nlohmann::json& j, unadvertiseMessage_t& M) {
+inline void from_json(const nlohmann::json& j, unadvertiseMessage_t& M) {
 
 	j.at("op").get_to(M.op);
 	if (j.count("id") != 0)
@@ -70,7 +70,7 @@ struct publishMessage_t {
 };
 
 template<typename Message>
-void to_json(nlohmann::json& j, const publishMessage_t<Message>& M) {
+inline void to_json(nlohmann::json& j, const publishMessage_t<Message>& M) {
 	j = nlohmann::json{ {"op",M.op},{"topic",M.topic},{"msg",M.msg} };
 	if (M.id.IsSet()) {
 		j["id"] = M.id.GetValue();
@@ -78,7 +78,7 @@ void to_json(nlohmann::json& j, const publishMessage_t<Message>& M) {
 };
 
 template<typename Message>
-void from_json(const nlohmann::json& j, publishMessage_t<Message>& M) {
+inline void from_json(const nlohmann::json& j, publishMessage_t<Message>& M) {
 
 	j.at("op").get_to(M.op);
 	j.at("topic").get_to(M.topic);
@@ -97,7 +97,7 @@ typedef struct subscribeMessage_t {
 } subscribeMessage_t;
 
 
-void to_json(nlohmann::json& j, const subscribeMessage_t& M) {
+inline void to_json(nlohmann::json& j, const subscribeMessage_t& M) {
 	j = nlohmann::json{ {"op",M.op},{"topic",M.topic}, };
 	if (M.id.IsSet()) {
 		j["id"] = M.id.GetValue();
@@ -111,7 +111,7 @@ void to_json(nlohmann::json& j, const subscribeMessage_t& M) {
 };
 
 
-void from_json(const nlohmann::json& j, subscribeMessage_t& M) {
+inline void from_json(const nlohmann::json& j, subscribeMessage_t& M) {
 
 	j.at("op").get_to(M.op);
 	j.at("topic").get_to(M.topic);
@@ -137,7 +137,7 @@ typedef struct unsubscribeMessage_t {
 } unsubscribeMessage_t;
 
 
-void to_json(nlohmann::json& j, const unsubscribeMessage_t& M) {
+inline void to_json(nlohmann::json& j, const unsubscribeMessage_t& M) {
 	j = nlohmann::json{ {"op",M.op},{"topic",M.topic}, };
 	if (M.id.IsSet()) {
 		j["id"] = M.id.GetValue();
@@ -146,7 +146,7 @@ void to_json(nlohmann::json& j, const unsubscribeMessage_t& M) {
 };
 
 
-void from_json(const nlohmann::json& j, unsubscribeMessage_t& M) {
+inline void from_json(const nlohmann::json& j, unsubscribeMessage_t& M) {
 
 	j.at("op").get_to(M.op);
 	j.at("topic").get_to(M.topic);
@@ -178,18 +178,26 @@ public:
 
 	/**
 	 * Subscribe this topic and get notified if a new message arrives (C++ variant)
-	 * @param Callback - Function that is called if a new message arrives
-	 * @param InReusableMessage - Message instance that is reused for deserialization (optional, shared between all handles on the same topic)
 	 */
 	bool subscribe() {
 		subscribeMessage_t subMsg;
-		subMsg.id = "Coucou";
-		subMsg.topic = "chatter";
+		subMsg.id = subMsg.op+":"+ fstring2string(stored_topic_name_)+":"+getNextId();
+		subMsg.topic = fstring2string(stored_topic_name_);
 		subMsg.type = "std_msgs/String";
 
 		nlohmann::json j = subMsg;
+		//UE_LOG(LogTemp, Warning, TEXT("TEST JSON : %s"), *string2Fstring(j.dump()));
+		
+		if (socket_!=nullptr) {
+			//UE_LOG(LogTemp, Warning, TEXT("Socket send "));
+			socket_->sendMessage(string2Fstring(j.dump()));
+		}
+		else {
+			UE_LOG(LogTemp, Error, TEXT("Socket not init "));
+		}
+		
 
-		return socket_->sendMessage(string2Fstring(j.dump()));
+		return true;
 
 	};
 
@@ -271,7 +279,7 @@ public:
 		case EEndPlayReason::RemovedFromWorld:
 		case EEndPlayReason::Quit:
 		case EEndPlayReason::Destroyed:
-			Unsubscribe();
+			unsubscribe();
 			socket_->uninitialize();
 		}
 	};
@@ -279,22 +287,24 @@ public:
 protected:
 	template<typename Message>
 	inline void publish(const Message msg) {
-		Advertise();
+		advertise();
 		publishMessage_t<Message> pubMsg;
 		pubMsg.msg = msg;
 		pubMsg.id = pubMsg.op+":" + fstring2string(stored_topic_name_) + ":" + getNextId();
 		pubMsg.topic = fstring2string(stored_topic_name_);
 		nlohmann::json j = pubMsg;
-		socket_->SendMessage(string2Fstring(j.dump()));
+		socket_->sendMessage(string2Fstring(j.dump()));
 
 	};
+	FString stored_topic_name_ = "";
+	FString stored_type = "";
 private:
 
 	bool IsSubscribed = false;
 	bool bInitialized = true;
 	bool IsAdvertised = false;
 	long id = 0;
-	FString stored_topic_name_ = "";
+	
 	std::string getNextId() {
 		return std::to_string(id++);
 	};

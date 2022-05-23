@@ -35,7 +35,7 @@ struct callService_t {
 };
 
 template<typename Request>
-void to_json(nlohmann::json& j, const callService_t<Request>& M) {
+inline void to_json(nlohmann::json& j, const callService_t<Request>& M) {
 	j = nlohmann::json{ {"op",M.op},{"service",M.service} };
 	if (M.id.IsSet()) {
 		j["id"] = M.id.GetValue();
@@ -48,7 +48,7 @@ void to_json(nlohmann::json& j, const callService_t<Request>& M) {
 };
 
 template<typename Request>
-void from_json(const nlohmann::json& j, callService_t<Request>& M) {
+inline void from_json(const nlohmann::json& j, callService_t<Request>& M) {
 
 	j.at("op").get_to(M.op);
 	j.at("service").get_to(M.service);
@@ -74,7 +74,7 @@ struct serviceResponse_t {
 };
 
 template<typename Response>
-void to_json(nlohmann::json& j, const serviceResponse_t<Response>& M) {
+inline void to_json(nlohmann::json& j, const serviceResponse_t<Response>& M) {
 	j = nlohmann::json{ {"op",M.op},{"service",M.service},{"result",M.result} };
 	if (M.id.IsSet()) {
 		j["id"] = M.id.GetValue();
@@ -85,7 +85,7 @@ void to_json(nlohmann::json& j, const serviceResponse_t<Response>& M) {
 };
 
 template<typename Response>
-void from_json(const nlohmann::json& j, serviceResponse_t<Response>& M) {
+inline void from_json(const nlohmann::json& j, serviceResponse_t<Response>& M) {
 
 	j.at("op").get_to(M.op);
 	j.at("service").get_to(M.service);
