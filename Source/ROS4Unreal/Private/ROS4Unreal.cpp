@@ -15,6 +15,11 @@ void FROS4UnrealModule::ShutdownModule()
 	// we call this function before unloading the module.
 }
 
+void FROS4UnrealModule::OnSessionEnd(UWorld* World, bool bSessionEnded, bool)
+{
+	if (!World->IsGameWorld() || !bSessionEnded) return;
+}
+
 #undef LOCTEXT_NAMESPACE
 	
 IMPLEMENT_MODULE(FROS4UnrealModule, ROS4Unreal)
