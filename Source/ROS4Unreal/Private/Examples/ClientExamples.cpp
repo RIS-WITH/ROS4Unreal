@@ -3,23 +3,24 @@
 
 #include "Examples/ClientExamples.h"
 
-void callbackSubscribe(chatterMessage_t msg) {
+void chatterCallback(const chatterMessage_t & msg) {
 	
 	UE_LOG(LogTemp, Warning, TEXT("Message receive in the callback for subscribe : %s"), *string2Fstring(msg.data));
 }
 
-void callbackSubscribe2(chatterMessage_t msg) {
+void chatterCallback2(const chatterMessage_t & msg) {
 
 	UE_LOG(LogTemp, Warning, TEXT(" % s Message receive in client 2 "), *string2Fstring(msg.data));
 }
 
-// Sets default values
+// Sets default valuess
 AClientExamples::AClientExamples()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-	topic_client = CreateDefaultSubobject<UchatterTopic>("/chatter1");
-	topic_client2 = CreateDefaultSubobject<UchatterTopic>("/chatter2");
+	topic_client = CreateDefaultSubobject<UchatterTopic>("listener");
+	topic_client2 = CreateDefaultSubobject<UchatterTopic>("listener2");
+	service_client = CreateDefaultSubobject<UtwoIntService>("clientTwoInts");
 
 	
 
@@ -32,9 +33,13 @@ void AClientExamples::BeginPlay()
 	Super::BeginPlay();
 	topic_client->initialize("/chatter1", "std_msgs/String");
 	topic_client2->initialize("/chatter2", "std_msgs/String");
+	service_client->initialize("/add_two_ints");
+	
 	//topic_client->callback_ = callbackSubscribe;
-	topic_client->subscribe(callbackSubscribe);
-	topic_client2->subscribe(callbackSubscribe2);
+	//topic_client->subscribe(chatterCallback);
+	//topic_client2->subscribe(chatterCallback2);
+	
+
 	
 }
 
@@ -42,6 +47,16 @@ void AClientExamples::BeginPlay()
 void AClientExamples::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	requestAddTwoInts_t req;
+	req.a = 12;
+	req.b = 30;
+	responseAddTwoInts_t res;
+	if (service_client->call(req, res)) {
+		UE_LOG(LogTemp, Warning, TEXT("RESPONSE : ---- %d"), res.sum);
+	}
+	else {
+		UE_LOG(LogTemp, Warning, TEXT("Call dropout"));
+	}
 
 }
 

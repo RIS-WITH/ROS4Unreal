@@ -58,7 +58,7 @@ public:
 		}
 	};
 
-	bool subscribe(std::function<void(chatterMessage_t)> callback) {
+	bool subscribe(std::function<void(chatterMessage_t)> callback) { //TODO Add number to queue message;
 		//UE_LOG(LogTemp, Warning, TEXT("In Subscribe"));
 		callback_ = callback;
 		TopicBase::subscribe();

@@ -63,6 +63,34 @@ inline void from_json(const nlohmann::json& j, callService_t<Request>& M) {
 	}
 };
 
+struct serviceResponseCheck_t {
+	std::string op = "service_response";
+	TOptional<std::string> id;
+	std::string service;
+	bool result;
+};
+
+
+inline void to_json(nlohmann::json& j, const serviceResponseCheck_t& M) {
+	j = nlohmann::json{ {"op",M.op},{"service",M.service},{"result",M.result} };
+	if (M.id.IsSet()) {
+		j["id"] = M.id.GetValue();
+	}
+
+};
+
+inline void from_json(const nlohmann::json& j, serviceResponseCheck_t& M) {
+
+	j.at("op").get_to(M.op);
+	j.at("service").get_to(M.service);
+	j.at("result").get_to(M.result);
+	if (j.count("id") != 0)
+	{
+		M.id = j.at("id").get< std::string >();
+	}
+
+};
+
 
 template<typename Response>
 struct serviceResponse_t {
@@ -72,6 +100,10 @@ struct serviceResponse_t {
 	TOptional<Response> values;
 	bool result;
 };
+
+
+
+
 
 template<typename Response>
 inline void to_json(nlohmann::json& j, const serviceResponse_t<Response>& M) {
@@ -203,6 +235,7 @@ public:
 		}
 		else {
 			UE_LOG(LogTemp, Error, TEXT("Empty response imposible to parse"));
+			return false;
 		}
 
 
@@ -237,16 +270,20 @@ public:
 	};
 	template<typename Response>
 	void callbackService(const FString& msg) {
-		//UE_LOG(LogTemp, Error, TEXT("Message recu deans le callback: %s"), *msg);
+		UE_LOG(LogTemp, Error, TEXT("Message recu deans le callback: %s"), *msg);
 
 		nlohmann::json j = nlohmann::json::parse(fstring2string(msg));
-		serviceResponse_t<Response> inMsg = j.get<serviceResponse_t<Response>>();
+		serviceResponseCheck_t inMsg = j.get<serviceResponseCheck_t>();
 		if (inMsg.op != "service_response") {
 			UE_LOG(LogTemp, Error, TEXT("Wrong Op code : %s"), *msg);
 			return;
 		}
 		if (inMsg.id != current_id_) {
 			UE_LOG(LogTemp, Error, TEXT("Wrong id : %s"), *msg);
+			return;
+		}
+		if (!inMsg.result) {
+			UE_LOG(LogTemp, Error, TEXT("Fail to Call Service check if service exists"));
 			return;
 		}
 		std::unique_lock<std::mutex> lck(syncMsg);

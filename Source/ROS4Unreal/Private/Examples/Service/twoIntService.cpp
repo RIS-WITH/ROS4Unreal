@@ -18,6 +18,7 @@ UtwoIntService::UtwoIntService()
 void UtwoIntService::BeginPlay()
 {
 	Super::BeginPlay();
+	
 
 	// ...
 	
@@ -28,6 +29,7 @@ void UtwoIntService::BeginPlay()
 void UtwoIntService::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
 
 	// ...
 }

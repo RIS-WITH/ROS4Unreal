@@ -1,10 +1,12 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
+#include "Service/twoIntService.h"
 #include "Topic/chatterTopic.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "ClientExamples.generated.h"
+
 
 UCLASS()
 class ROS4UNREAL_API AClientExamples : public AActor
@@ -16,6 +18,7 @@ public:
 	AClientExamples();
 	UchatterTopic* topic_client;
 	UchatterTopic* topic_client2;
+	UtwoIntService* service_client;
 
 protected:
 	// Called when the game starts or when spawned
