@@ -254,18 +254,20 @@ public:
 	  /*
 	   * Undavertises and kills connection on Endplay
 	   */
-	inline void EndPlay(const EEndPlayReason::Type EndPlayReason) {
+	
+	inline void EndPlay(const EEndPlayReason::Type EndPlayReason)  {
 		//UE_LOG(LogTemp, Error, TEXT("KILL socket"));
 		switch (EndPlayReason)
 		{
 		case EEndPlayReason::LevelTransition:
-			break;
+			
 		case EEndPlayReason::EndPlayInEditor:
 		case EEndPlayReason::RemovedFromWorld:
 		case EEndPlayReason::Quit:
-		case EEndPlayReason::Destroyed:
-
 			socket_->uninitialize();
+		case EEndPlayReason::Destroyed:
+			break;
+			
 		}
 	};
 	template<typename Response>

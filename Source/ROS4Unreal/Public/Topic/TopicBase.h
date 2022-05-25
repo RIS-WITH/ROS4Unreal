@@ -269,18 +269,19 @@ public:
 	 /*
 	  * Unsubscribes and kills connection on Endplay
 	  */
+	
 	inline void EndPlay(const EEndPlayReason::Type EndPlayReason) {
-		//UE_LOG(LogTemp, Error, TEXT("KILL socket"));
+		UE_LOG(LogTemp, Error, TEXT("KILL socket"));
 		switch (EndPlayReason)
 		{
 		case EEndPlayReason::LevelTransition:
-			break;
 		case EEndPlayReason::EndPlayInEditor:
 		case EEndPlayReason::RemovedFromWorld:
 		case EEndPlayReason::Quit:
-		case EEndPlayReason::Destroyed:
 			unsubscribe();
 			socket_->uninitialize();
+		case EEndPlayReason::Destroyed:
+			break;
 		}
 	};
 
@@ -298,10 +299,11 @@ protected:
 	};
 	FString stored_topic_name_ = "";
 	FString stored_type = "";
+	bool bInitialized = true;
 private:
 
 	bool IsSubscribed = false;
-	bool bInitialized = true;
+	
 	bool IsAdvertised = false;
 	long id = 0;
 	

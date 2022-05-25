@@ -27,6 +27,38 @@ typedef struct {
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(serviceMessageAddTwoInts, req, res)
 
 
+USTRUCT(BlueprintType)
+struct FrequestAddTwoInts
+{
+	GENERATED_USTRUCT_BODY()
+public:
+		UPROPERTY(BlueprintReadWrite)
+		int a;
+		UPROPERTY(BlueprintReadWrite)
+		int b;
+};
+
+USTRUCT(BlueprintType)
+struct FresponseAddTwoInts
+{
+	GENERATED_USTRUCT_BODY()
+public:
+		UPROPERTY(BlueprintReadWrite)
+		int sum;
+};
+USTRUCT(BlueprintType)
+struct FserviceMessageAddTwoints
+{
+	GENERATED_USTRUCT_BODY()
+public:
+		UPROPERTY(BlueprintReadWrite)
+		FrequestAddTwoInts req;
+		UPROPERTY(BlueprintReadWrite)
+		FresponseAddTwoInts res;
+
+};
+
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class ROS4UNREAL_API UtwoIntService : public UActorComponent, public ServiceBase
 {
@@ -36,6 +68,7 @@ public:
 	// Sets default values for this component's properties
 	UtwoIntService();
 
+	UFUNCTION(BlueprintCallable, Category = "twoIntService")
 	void initialize(const FString& service_name) {
 		socket = NewObject<UWebSocket>();
 		ServiceBase::initialize(socket, service_name);
@@ -46,6 +79,55 @@ public:
 		});
 
 	}
+
+	static requestAddTwoInts_t fromUnreal(const FrequestAddTwoInts& msg) {
+		requestAddTwoInts_t c;
+		c.a = msg.a;
+		c.b = msg.b;
+		return c;
+	}
+
+	static FrequestAddTwoInts toUnreal(const requestAddTwoInts_t& msg) {
+		FrequestAddTwoInts c;
+		c.a = msg.a;
+		c.b = msg.b;
+		return c;
+	}
+
+	static responseAddTwoInts_t fromUnreal(const FresponseAddTwoInts& msg) {
+		responseAddTwoInts_t c;
+		c.sum = msg.sum;
+		return c;
+	}
+
+	static FresponseAddTwoInts toUnreal(const responseAddTwoInts_t& msg) {
+		FresponseAddTwoInts c;
+		c.sum = msg.sum;
+		return c;
+	}
+
+	static serviceMessageAddTwoInts fromUnreal(const FserviceMessageAddTwoints& msg) {
+		serviceMessageAddTwoInts c;
+		c.req = fromUnreal(msg.req);
+		c.res = fromUnreal(msg.res);
+		return c;
+	}
+
+	static FserviceMessageAddTwoints toUnreal(const serviceMessageAddTwoInts& msg) {
+		FserviceMessageAddTwoints c;
+		c.req = toUnreal(msg.req);
+		c.res = toUnreal(msg.res);
+		return c;
+	}
+
+	UFUNCTION(BlueprintCallable, Category = "twoIntService")
+	FresponseAddTwoInts call(const FrequestAddTwoInts& reqUnreal) {
+		responseAddTwoInts_t res;
+		requestAddTwoInts_t req = fromUnreal(reqUnreal);
+		call(req, res);
+		return toUnreal(res);
+	}
+
 
 	bool call(const requestAddTwoInts_t& req, responseAddTwoInts_t& res) {
 		return ServiceBase::call<requestAddTwoInts_t, responseAddTwoInts_t>(req, res);
@@ -62,7 +144,9 @@ public:
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
-	void EndPlay(const EEndPlayReason::Type EndPlayReason) {
+
+	UFUNCTION(BlueprintCallable)
+	void EndPlay(const EEndPlayReason::Type EndPlayReason) override {
 		ServiceBase::EndPlay(EndPlayReason);
 	}
 

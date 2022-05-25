@@ -36,8 +36,8 @@ void AClientExamples::BeginPlay()
 	service_client->initialize("/add_two_ints");
 	
 	//topic_client->callback_ = callbackSubscribe;
-	//topic_client->subscribe(chatterCallback);
-	//topic_client2->subscribe(chatterCallback2);
+	topic_client->subscribe(chatterCallback);
+	topic_client2->subscribe(chatterCallback2);
 	
 
 	

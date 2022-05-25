@@ -77,16 +77,19 @@ public:
 
 		nlohmann::json j = nlohmann::json::parse(fstring2string(msg));
 		publishMessage_t<chatterMessage_t> revMes = j.get<publishMessage_t<chatterMessage_t>>();
-		if (revMes.op == "publish" && revMes.topic == fstring2string(stored_topic_name_)) {
-			if (callback_) {
-				//UE_LOG(LogTemp, Warning, TEXT("Message Recu socket callback callback enregister --- "));
-				callback_(revMes.msg);
+		if (TopicBase::bInitialized) {
+			if (revMes.op == "publish" && revMes.topic == fstring2string(stored_topic_name_)) {
+				if (callback_) {
+					//UE_LOG(LogTemp, Warning, TEXT("Message Recu socket callback callback enregister --- "));
+					callback_(revMes.msg);
+				}
+				else {
+					UE_LOG(LogTemp, Warning, TEXT("Message recu sans callback action --- : %s"), *string2Fstring(revMes.msg.data));
+					newMessageEvent.Broadcast(toUnreal(revMes.msg));
+				}
 			}
-			else {
-				UE_LOG(LogTemp, Warning, TEXT("Message recu sans callback action --- : %s"), *string2Fstring(revMes.msg.data));
-				newMessageEvent.Broadcast(toUnreal(revMes.msg));
-			}	
 		}
+		
 	};
 
 	bool subscribe(std::function<void(chatterMessage_t)> callback) { //TODO Add number to queue message;
@@ -99,29 +102,33 @@ public:
 
 	UWebSocket* socket;
 	std::function<void(chatterMessage_t)> callback_;
-	FchatterMessage currentUnrealmsg;
 
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
-	void EndPlay(const EEndPlayReason::Type EndPlayReason) {
-		TopicBase::EndPlay(EndPlayReason);
+	UFUNCTION(BlueprintCallable)
+	void EndPlay(const EEndPlayReason::Type EndPlayReason) override {
+		UE_LOG(LogTemp, Error, TEXT("KILL socket chatter"));
+		//UE_LOG(LogTemp, Warning, TEXT("ENDplay %s"), EndPlayReason);
+		try {
+			TopicBase::EndPlay(EndPlayReason);
+		}
+		catch (const std::exception & e) {
+			FString error = e.what();
+			UE_LOG(LogTemp, Error, TEXT("Exception :%s"), *error);
+		}
+
+		
 	}
 	UFUNCTION(BlueprintCallable, Category = "chatterTopic")
 	void subscribe() {
 		TopicBase::subscribe();
 	}
 
-	UPROPERTY(BlueprintReadWrite,BlueprintAssignable,BlueprintCallable,meta=(DisplayName="OnnewMessage",Category="chatterTopic"))
+	UPROPERTY(BlueprintReadWrite,BlueprintAssignable,BlueprintCallable,meta=(DisplayName="OnNewMessage",Category="chatterTopic"))
 		FnewMessageEvent newMessageEvent;
 
-	/*
-	UFUNCTION(BlueprintImplementableEvent, Category = "chatterTopic", meta = (DisplayName = "new Message from Topic "))
-		void newMessageSubscribe(const FchatterMessage& msg);
-	
-	UFUNCTION(BlueprintNativeEvent, Category = "chatterTopic", meta = (DisplayName = "new Message from Topic "))
-		void newMessageSubscribe(const FchatterMessage& msg);
-	*/
+
 	
 
 
