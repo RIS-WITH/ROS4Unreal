@@ -1,4 +1,4 @@
-# <img src="/docs/ROS4UE.png" > ROS4Unreal
+# <img src="/docs/images/ROS4UE.png" > ROS4Unreal
 
 [![Release][Release-Image]][Release-Url]  
 
