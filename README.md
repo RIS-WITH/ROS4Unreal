@@ -41,7 +41,7 @@ AmyActor::AmyActor()
 void AClientExamples::BeginPlay()
 {
 	Super::BeginPlay();
-	topic_client->initialize("/chatter1", "std_msgs/String");
+	topic_client->initialize("/chatter1");
 	
 }
 
@@ -136,6 +136,8 @@ void AClientExamples::Tick(float DeltaTime)
 #### Call Service 
 
 ![Call of Service](docs/images/Examples/Blueprint/call_service.PNG)
+
+[Tutorials to create Custom Topic or Service](docs/tutorials/CustomServiceTopic.md)
 
 
 [Release-Url]: https://github.com/RIS-WITH/ROS4Unreal
