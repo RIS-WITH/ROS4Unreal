@@ -31,6 +31,10 @@ struct FchatterMessage
 UDELEGATE(BlueprintAuthorityOnly)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FnewMessageEvent, FchatterMessage, newMessage);
 
+
+
+
+
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class ROS4UNREAL_API UchatterTopic : public UActorComponent, public TopicBase
 {
@@ -38,12 +42,11 @@ class ROS4UNREAL_API UchatterTopic : public UActorComponent, public TopicBase
 
 public:	
 	// Sets default values for this component's properties
-	
 	UchatterTopic();
 	UFUNCTION(BlueprintCallable, Category = "chatterTopic")
-	void initialize(const FString& topic_name, const FString& type_topic) {
+	void initialize(const FString& topic_name) {
 		stored_topic_name_ = topic_name;
-		stored_type = type_topic;
+		stored_type = type_topic_;
 		socket = NewObject<UWebSocket>();
 		TopicBase::initialize(socket, topic_name);
 		socket->socket_->OnMessage().AddLambda([this](const FString& msg)->void {
@@ -92,10 +95,10 @@ public:
 		
 	};
 
-	bool subscribe(std::function<void(chatterMessage_t)> callback) { //TODO Add number to queue message;
+	bool subscribe(std::function<void(chatterMessage_t)> callback, int queue_lenght = 1) { //TODO Add number to queue message;
 		//UE_LOG(LogTemp, Warning, TEXT("In Subscribe"));
 		callback_ = callback;
-		TopicBase::subscribe();
+		TopicBase::subscribe(queue_lenght);
 		return true;
 	};
 	
@@ -127,6 +130,8 @@ protected:
 
 	UPROPERTY(BlueprintReadWrite,BlueprintAssignable,BlueprintCallable,meta=(DisplayName="OnNewMessage",Category="chatterTopic"))
 		FnewMessageEvent newMessageEvent;
+
+	FString type_topic_ = "std_msgs/String";
 
 
 	

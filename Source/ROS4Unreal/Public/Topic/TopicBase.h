@@ -179,24 +179,19 @@ public:
 	/**
 	 * Subscribe this topic and get notified if a new message arrives (C++ variant)
 	 */
-	bool subscribe() {
+	bool subscribe(int queue_lenght = 1) {
 		subscribeMessage_t subMsg;
 		subMsg.id = subMsg.op+":"+ fstring2string(stored_topic_name_)+":"+getNextId();
 		subMsg.topic = fstring2string(stored_topic_name_);
 		subMsg.type = "std_msgs/String";
-
+		subMsg.queue_length = queue_lenght;
 		nlohmann::json j = subMsg;
-		//UE_LOG(LogTemp, Warning, TEXT("TEST JSON : %s"), *string2Fstring(j.dump()));
-		
 		if (socket_!=nullptr) {
-			//UE_LOG(LogTemp, Warning, TEXT("Socket send "));
 			socket_->sendMessage(string2Fstring(j.dump()));
 		}
 		else {
 			UE_LOG(LogTemp, Error, TEXT("Socket not init "));
 		}
-		
-
 		return true;
 
 	};
@@ -226,15 +221,6 @@ public:
 			advMsg.topic = fstring2string(stored_topic_name_);
 			nlohmann::json j = advMsg;
 			IsAdvertised = socket_->sendMessage(string2Fstring(j.dump()));
-
-
-			/*
-			UROSTopicAdvertiseMessage* AdvertiseMessage = NewObject<UROSTopicAdvertiseMessage>();
-			AdvertiseMessage->ID = FString::Printf(TEXT("advertise:%s"), *StoredTopicName);
-			AdvertiseMessage->TopicName = StoredTopicName;
-			AdvertiseMessage->MessageType = StoredMessageClass.GetDefaultObject()->GetMessageType();
-
-			IsAdvertised = SendMessage(*AdvertiseMessage); */
 		}
 
 		return IsAdvertised;

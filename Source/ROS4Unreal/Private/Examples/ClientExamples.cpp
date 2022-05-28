@@ -31,8 +31,8 @@ AClientExamples::AClientExamples()
 void AClientExamples::BeginPlay()
 {
 	Super::BeginPlay();
-	topic_client->initialize("/chatter1", "std_msgs/String");
-	topic_client2->initialize("/chatter2", "std_msgs/String");
+	topic_client->initialize("/chatter1");
+	topic_client2->initialize("/chatter2");
 	service_client->initialize("/add_two_ints");
 	
 	//topic_client->callback_ = callbackSubscribe;
