@@ -3,13 +3,13 @@
 
 #include "Examples/ClientExamples.h"
 
-void chatterCallback(const chatterMessage_t & msg) {
-	
+void chatterCallback(const chatterMessage_t & msg)
+{
 	UE_LOG(LogTemp, Warning, TEXT("Message receive in the callback for subscribe : %s"), *string2Fstring(msg.data));
 }
 
-void chatterCallback2(const chatterMessage_t & msg) {
-
+void chatterCallback2(const chatterMessage_t & msg)
+{
 	UE_LOG(LogTemp, Warning, TEXT(" % s Message receive in client 2 "), *string2Fstring(msg.data));
 }
 
@@ -21,10 +21,6 @@ AClientExamples::AClientExamples()
 	topic_client = CreateDefaultSubobject<UchatterTopic>("listener");
 	topic_client2 = CreateDefaultSubobject<UchatterTopic>("listener2");
 	service_client = CreateDefaultSubobject<UtwoIntService>("clientTwoInts");
-
-	
-
-
 }
 
 // Called when the game starts or when spawned
@@ -38,9 +34,6 @@ void AClientExamples::BeginPlay()
 	//topic_client->callback_ = callbackSubscribe;
 	topic_client->subscribe(chatterCallback);
 	topic_client2->subscribe(chatterCallback2);
-	
-
-	
 }
 
 // Called every frame

@@ -1,6 +1,9 @@
 #pragma once
+#include "Socket/WebSocket.h"
 #include <string>
 #include "Misc/Optional.h"
+#include "Misc/ScopeLock.h"
+
 #include <mutex>
 #include <chrono>
 #include <condition_variable>
@@ -8,7 +11,8 @@
 #include "utils/typeDefinitions.h"
 #include "CoreMinimal.h"
 #include "Sockets.h"
-#include "Socket/WebSocket.h"
+#include <ctime>
+
 
 
 typedef struct advertiseServiceMessage_t {
@@ -150,6 +154,8 @@ public:
 		socket_ = socket;
 		socket_->initialize();
 		bInitialized = true;
+		U_Event_service = FGenericPlatformProcess::GetSynchEventFromPool(false);
+
 	};
 
 	/**
@@ -205,6 +211,11 @@ public:
 	 */
 	template<typename Request, typename Response>
 	bool call(const Request& req, Response& res) {
+		UE_LOG(LogTemp, Error, TEXT("Before lock"));
+		const std::lock_guard<std::mutex> lock(lock_call_);
+		FScopeLock ScopeLock(&UmutexService);
+		UE_LOG(LogTemp, Error, TEXT("After lock "));
+		
 		if (!bInitialized)
 		{
 			UE_LOG(LogTemp, Error, TEXT("You first have to initialize your ROSServiceHandle before you can Call it."));
@@ -224,10 +235,27 @@ public:
 
 		std::unique_lock<std::mutex> lck(syncMsg);
 		//UE_LOG(LogTemp, Warning, TEXT("Lock apres"));
-		if (cv.wait_for(lck, std::chrono::milliseconds(500)) == std::cv_status::timeout) {
-			//UE_LOG(LogTemp, Warning, TEXT("boucle timeout 0.5sec"));
+		/*
+		if (cv.wait_for(lck, std::chrono::milliseconds(1200)) == std::cv_status::timeout) {
+			UE_LOG(LogTemp, Warning, TEXT("boucle timeout 1sec %d"),time(NULL));
 			return false;
 		}
+		*/
+		int compt = 1200/10;
+		while (compt >= 0)
+		{
+			if (cv.wait_for(lck, std::chrono::milliseconds(10)) == std::cv_status::timeout)
+				compt--;
+			else
+				break;
+		}
+		UE_LOG(LogTemp, Warning, TEXT("Compt : %d"), compt);
+		if (compt < 0) {
+			UE_LOG(LogTemp, Warning, TEXT("boucle timeout 1sec %d"), time(NULL));
+			return false;
+		}
+		
+		
 		if (!string_resp.empty()) {
 			nlohmann::json jres = nlohmann::json::parse(string_resp);
 			serviceResponse_t<Response> inMsg = jres.get<serviceResponse_t<Response>>();
@@ -246,7 +274,7 @@ public:
 
 
 
-	FString getServiceName() const {
+	inline FString getServiceName() const {
 		return stored_service_name;
 	};
 
@@ -292,9 +320,14 @@ public:
 		string_resp = fstring2string(msg);
 		//UE_LOG(LogTemp, Error, TEXT("unlock : %s"), *msg);
 		cv.notify_all();
+		U_Event_service->Trigger();
+		U_Event_service->Reset();
 		return;
 
 	}
+
+	FCriticalSection UmutexService;
+	FEvent* U_Event_service;
 
 
 private:
@@ -303,11 +336,15 @@ private:
 	std::string string_resp;
 	UWebSocket* socket_;
 	std::mutex syncMsg;
+	std::mutex lock_call_;
 	std::condition_variable cv;
 	bool bAdvertised = false;
 	bool bInitialized = false;
 	long id = 0;
 	std::string current_id_;
+
+
+
 
 	std::string getNextId() {
 		return std::to_string(id++);
