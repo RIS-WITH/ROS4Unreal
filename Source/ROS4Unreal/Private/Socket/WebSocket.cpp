@@ -1,11 +1,16 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include <ctime>
+
 #include "Socket/WebSocket.h"
 #include "WebSocketsModule.h"
 #include "ROS4UnrealSettings.h"
 #include "ROS4Unreal.h"
+#include <ctime>
 
+
+UWebSocket::UWebSocket()
+{
+}
 
 bool UWebSocket::initialize()
 {
