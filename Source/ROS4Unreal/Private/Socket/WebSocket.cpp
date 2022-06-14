@@ -14,12 +14,13 @@ UWebSocket::UWebSocket()
 
 bool UWebSocket::initialize()
 {
-	U_Semaphore = FGenericPlatformProcess::GetSynchEventFromPool(false);
-
-	FPlatformProcess::Sleep(1);
 	const UROS4UnrealSettings * settings_ = FROS4UnrealModule::Get().GetSettings();
-	FString IPAddress = settings_->IP;
-	int Port = settings_->Port;
+	//FString IPAddress = settings_->IP;
+	//int Port = settings_->Port;
+
+	FString IPAddress = "127.0.0.1";
+	int Port = 9090;
+
 
 	FString ConnectMsg = FString::Printf(TEXT("ws://%s:%d/"), *IPAddress, Port);
 	UE_LOG(LogTemp, Error, TEXT("Init --- : %s Test"), *ConnectMsg);
@@ -46,22 +47,14 @@ bool UWebSocket::initialize()
 	
 	
 	socket_->OnConnected().AddLambda([this]()->void {
-		AsyncTask(ENamedThreads::GameThread, [this]() {
-			if (U_Semaphore) {
-				UE_LOG(LogTemp, Warning, TEXT("Semaphore exist"));
-			}
-			else
-				UE_LOG(LogTemp, Warning, TEXT("Semaphore not exist"));
-
-			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Blue, "Connect ok");
-			UE_LOG(LogTemp, Error, TEXT("Connect ok %d"), time(NULL));
-			U_Semaphore->Trigger();
-			});
+		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Blue, "Connect ok");
+		UE_LOG(LogTemp, Error, TEXT("Connect ok %d"), time(NULL));
 		});
 
 	
 	socket_->Connect();
-	
+
+	/*
 	FTimespan time_wait = FTimespan().FromMilliseconds(10);
 	int compt = 10000 / 10;
 	while (compt >= 0)
@@ -82,7 +75,7 @@ bool UWebSocket::initialize()
 		return false;
 	}
 	
-	/*
+	
 	FTimespan time_wait = FTimespan().FromSeconds(10);
 	if (!U_Semaphore->Wait(time_wait)) {
 		UE_LOG(LogTemp, Warning, TEXT("TimeOut"));

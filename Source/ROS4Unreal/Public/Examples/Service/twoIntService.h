@@ -68,13 +68,18 @@ public:
 	// Sets default values for this component's properties
 	UtwoIntService();
 
+	UE::Tasks::FTask connectTask;
+
 	UFUNCTION(BlueprintCallable, Category = "twoIntService")
 	void initialize(const FString& service_name) {
+
+		//connectTask = UE::Tasks::Launch(TEXT("Connect TASK websocket"),[this,])
 		socket = NewObject<UWebSocket>();
 		ServiceBase::initialize(socket, service_name);
-		socket->socket_->OnMessage().AddLambda([this](const FString& msg)->void {AsyncTask(ENamedThreads::GameThread, [this, msg]() {
-			//UE_LOG(LogTemp, Error, TEXT("ASYNC FUNC"));
-			callbackService(msg);
+		socket->socket_->OnMessage().AddLambda([this](const FString& msg)->void { 
+			AsyncTask(ENamedThreads::AnyBackgroundHiPriTask, [this, msg]() {
+				//UE_LOG(LogTemp, Error, TEXT("ASYNC FUNC"));
+				callbackService(msg);
 			});
 		});
 
@@ -133,9 +138,45 @@ public:
 		return ServiceBase::call<requestAddTwoInts_t, responseAddTwoInts_t>(req, res);
 	}
 
+	void call() {
+		requestAddTwoInts_t req;
+		req.a = 30;
+		req.b = 12;
+		responseAddTwoInts_t res;
+		res.sum = -1;
+		call(req, res);
+		UE_LOG(LogTemp, Warning, TEXT("Result : %d"), res.sum);
+	}
+	void call(int k) {
+		requestAddTwoInts_t req;
+		req.a = 30;
+		req.b = k;
+		responseAddTwoInts_t res;
+		res.sum = -1;
+		call(req, res);
+
+		UE_LOG(LogTemp, Warning, TEXT("Result : %d"), res.sum);
+	}
+
 	void callbackService(const FString& msg) {
 		//UE_LOG(LogTemp, Warning, TEXT("Dans le callback Ontologenius"));
 		ServiceBase::callbackService<responseAddTwoInts_t>(msg);
+	}
+
+	void task() {
+		requestAddTwoInts_t req;
+		req.a = 30;
+		req.b = 12;
+		responseAddTwoInts_t res;
+		res.sum = -1;
+		UE_LOG(LogTemp, Warning, TEXT("CallTask"));
+		ServiceBase::callTask(req, res);
+		UE_LOG(LogTemp, Warning, TEXT("Result : %d"), res.sum);
+		
+	}
+
+	void unlock_task() {
+		ServiceBase::unlock_task();
 	}
 
 	UWebSocket* socket;

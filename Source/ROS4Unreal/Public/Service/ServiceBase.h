@@ -3,8 +3,9 @@
 #include <string>
 #include "Misc/Optional.h"
 #include "Misc/ScopeLock.h"
-
+#include <thread>
 #include <mutex>
+#include <fstream>
 #include <chrono>
 #include <condition_variable>
 #include "utils/json.h"
@@ -155,6 +156,24 @@ public:
 		socket_->initialize();
 		bInitialized = true;
 		U_Event_service = FGenericPlatformProcess::GetSynchEventFromPool(false);
+		std::ofstream myfile;
+	
+
+
+		auto f = []() {
+
+			std::ofstream myfile;
+			myfile.open("cpplog.txt");
+			for (int i = 0; i < 1000; i++) {
+				myfile << "logcpp i: " << i << " time : " << time(NULL);
+				//std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+			}
+			myfile.close();
+
+		};
+		f();
+		//std::thread th(f);
+
 
 	};
 
@@ -211,11 +230,15 @@ public:
 	 */
 	template<typename Request, typename Response>
 	bool call(const Request& req, Response& res) {
-		UE_LOG(LogTemp, Error, TEXT("Before lock"));
-		const std::lock_guard<std::mutex> lock(lock_call_);
 		FScopeLock ScopeLock(&UmutexService);
-		UE_LOG(LogTemp, Error, TEXT("After lock "));
-		
+		U_Event_service->Reset();
+		string_resp = "";
+
+		if (!socket_->socket_->IsConnected()) {
+			UE_LOG(LogTemp, Error, TEXT("Not connected"));
+			return false;
+		}
+			
 		if (!bInitialized)
 		{
 			UE_LOG(LogTemp, Error, TEXT("You first have to initialize your ROSServiceHandle before you can Call it."));
@@ -229,11 +252,12 @@ public:
 		callMsg.args = req;
 		callMsg.id = callMsg.op+":" + fstring2string(stored_service_name) + ":" + getNextId();
 		current_id_ = callMsg.id.GetValue();
+		UE_LOG(LogTemp, Warning, TEXT("Message sent with this id : %s"),*string2Fstring(current_id_));
 		nlohmann::json j = callMsg;
 		socket_->sendMessage(string2Fstring(j.dump()));
 		//UE_LOG(LogTemp, Warning, TEXT("Lock avant"));
 
-		std::unique_lock<std::mutex> lck(syncMsg);
+		//std::unique_lock<std::mutex> lck(syncMsg);
 		//UE_LOG(LogTemp, Warning, TEXT("Lock apres"));
 		/*
 		if (cv.wait_for(lck, std::chrono::milliseconds(1200)) == std::cv_status::timeout) {
@@ -241,17 +265,18 @@ public:
 			return false;
 		}
 		*/
+		/*
 		int compt = 1200/10;
 		while (compt >= 0)
 		{
-			if (cv.wait_for(lck, std::chrono::milliseconds(10)) == std::cv_status::timeout)
+			if (!U_Event_service->Wait(10))
 				compt--;
 			else
 				break;
 		}
 		UE_LOG(LogTemp, Warning, TEXT("Compt : %d"), compt);
 		if (compt < 0) {
-			UE_LOG(LogTemp, Warning, TEXT("boucle timeout 1sec %d"), time(NULL));
+			UE_LOG(LogTemp, Error, TEXT("boucle timeout 1sec %d"), time(NULL));
 			return false;
 		}
 		
@@ -265,7 +290,7 @@ public:
 			UE_LOG(LogTemp, Error, TEXT("Empty response imposible to parse"));
 			return false;
 		}
-
+		*/
 
 		return true;
 
@@ -300,6 +325,7 @@ public:
 	};
 	template<typename Response>
 	void callbackService(const FString& msg) {
+
 		UE_LOG(LogTemp, Error, TEXT("Message recu deans le callback: %s"), *msg);
 
 		nlohmann::json j = nlohmann::json::parse(fstring2string(msg));
@@ -308,26 +334,68 @@ public:
 			UE_LOG(LogTemp, Error, TEXT("Wrong Op code : %s"), *msg);
 			return;
 		}
-		if (inMsg.id != current_id_) {
-			UE_LOG(LogTemp, Error, TEXT("Wrong id : %s"), *msg);
+		if (inMsg.id.GetValue() != current_id_) {
+			UE_LOG(LogTemp, Error, TEXT("Wrong id : %s, current id : %s"), *string2Fstring(inMsg.id.GetValue()),*string2Fstring(current_id_));
 			return;
 		}
 		if (!inMsg.result) {
 			UE_LOG(LogTemp, Error, TEXT("Fail to Call Service check if service exists"));
 			return;
 		}
-		std::unique_lock<std::mutex> lck(syncMsg);
 		string_resp = fstring2string(msg);
-		//UE_LOG(LogTemp, Error, TEXT("unlock : %s"), *msg);
-		cv.notify_all();
-		U_Event_service->Trigger();
-		U_Event_service->Reset();
+		UE_LOG(LogTemp, Warning, TEXT("unlock : %s"), *msg);
+		//U_Event_service->Trigger();
+		//Event.Trigger();
+		
 		return;
 
 	}
 
 	FCriticalSection UmutexService;
 	FEvent* U_Event_service;
+	UE::Tasks::FTaskEvent Event{ UE_SOURCE_LOCATION };
+
+
+	template<typename Request, typename Response>
+	void callTask(const Request & req, Response & res) {
+		long t = time(NULL);
+		UE_LOG(LogTemp, Warning, TEXT("Before send %d "), t);
+		UE::Tasks::FTask sendTask = UE::Tasks::Launch(TEXT(""), [this, &req, &res] {
+			UE_LOG(LogTemp, Warning, TEXT("send!"));
+			call<Request, Response>(req, res);
+			//Event.Wait();
+			FPlatformProcess::Sleep(5);
+		});
+		sendTask.BusyWait(FTimespan::FromSeconds(10));
+		if (!string_resp.empty()) {
+			nlohmann::json jres = nlohmann::json::parse(string_resp);
+			serviceResponse_t<Response> inMsg = jres.get<serviceResponse_t<Response>>();
+			res = inMsg.values.GetValue();
+
+		}
+		else {
+			UE_LOG(LogTemp, Error, TEXT("Empty response imposible to parse"));
+
+		}
+		//.BusyWait();
+		UE_LOG(LogTemp, Warning, TEXT("after send %d "), time(NULL));
+		UE_LOG(LogTemp, Warning, TEXT("wait time  %d "), time(NULL) - t);
+	}
+
+
+	void task() {
+		long t = time(NULL);
+		UE_LOG(LogTemp, Warning, TEXT("Before send %d "),t);
+		bool plop = false;
+		bool& plop_ref = plop;
+		socket_->send(Event).BusyWait(FTimespan::FromSeconds(10));
+		UE_LOG(LogTemp, Warning, TEXT("after send %d "), time(NULL));
+		UE_LOG(LogTemp, Warning, TEXT("wait time  %d "), time(NULL)-t);
+	}
+
+	void unlock_task() {
+		Event.Trigger();
+	}
 
 
 private:
